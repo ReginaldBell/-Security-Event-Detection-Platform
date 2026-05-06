@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: securewatch-postgres
+    environment:
+      POSTGRES_DB: securewatch
+      POSTGRES_USER: securewatch
+      POSTGRES_PASSWORD: securewatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U securewatch -d securewatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  securewatch:
+    build: .
+    container_name: securewatch
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./runs:/app/runs
+    environment:
+      - DATABASE_URL=postgresql+psycopg://securewatch:securewatch@postgres:5432/securewatch
+      - SECUREWATCH_INGEST_URL=http://localhost:8000/ingest/
+
+volumes:
+  postgres-data:

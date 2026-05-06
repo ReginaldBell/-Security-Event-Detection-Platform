@@ -36,8 +36,16 @@ _REQUIRED_CANONICAL_FIELDS = [
     "result",
     "reason",
     "user_agent",
+    "process_name",
+    "command_line",
+    "location",
     "source",
+    "event_id",
+    "scenario_id",
+    "validation_run_id",
 ]
+
+_LOCKED_ALIAS_FIELDS = {"user", "src", "dest"}
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +117,27 @@ def get_reject_types(source: Optional[str]) -> frozenset:
     return frozenset(str(r) for r in reject)
 
 
+def load_mapping(force_reload: bool = False) -> Dict[str, List[str]]:
+    """Return the locked generic user/src/dest aliases.
+
+    The application still uses profile-based mappings for the full ingest
+    pipeline. This helper exposes the compact aliases required by the locked
+    NormalizedEvent contract.
+    """
+    mappings = load_mappings(force_reload=force_reload)
+    default_mapping = {
+        "user": ["TargetUserName", "user", "username", "UserId"],
+        "src": ["IpAddress", "source_ip", "ClientIP", "src"],
+        "dest": ["Computer", "host", "hostname", "device_name"],
+    }
+
+    out: Dict[str, List[str]] = {}
+    for field, fallback in default_mapping.items():
+        aliases = mappings.get(field, fallback)
+        out[field] = list(aliases) if isinstance(aliases, list) else list(fallback)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Validation logic (used by both the CLI and tests)
 # ---------------------------------------------------------------------------
@@ -139,6 +168,10 @@ def validate_mappings(mappings: Dict[str, Any]) -> List[str]:
             errors.append(f"_default profile has an empty alias list for field '{field}'.")
 
     for profile_name, profile in mappings.items():
+        if profile_name in _LOCKED_ALIAS_FIELDS:
+            if not isinstance(profile, list) or len(profile) == 0:
+                errors.append(f"Locked alias field '{profile_name}' must be a non-empty list.")
+            continue
         if not isinstance(profile, dict):
             errors.append(f"Profile '{profile_name}' must be a YAML mapping, got {type(profile).__name__}.")
             continue
@@ -174,7 +207,7 @@ def _main() -> None:
 
     errors = validate_mappings(mappings)
 
-    profiles = [k for k in mappings if not k.startswith("_")]
+    profiles = [k for k in mappings if not k.startswith("_") and k not in _LOCKED_ALIAS_FIELDS]
     print(f"Profiles found: {', '.join(profiles) or '(none)'}")
     print(f"Required canonical fields checked: {', '.join(_REQUIRED_CANONICAL_FIELDS)}")
 

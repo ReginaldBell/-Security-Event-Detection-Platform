@@ -1,0 +1,23 @@
+{
+  "scenario_id": "brute_force_medium",
+  "name": "Brute Force Medium Severity",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": {"technique": "T1110", "tactic": "Credential Access"},
+  "expected_detection": "brute_force",
+  "expected_mitre": "T1110",
+  "expected_subject": {"source_ip": "10.0.1.3", "username": "u_s03"},
+  "expected_severity": "medium",
+  "expected_confidence": 0.85,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 3, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 4, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 5, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 6, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 7, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 8, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 9, "source_ip": "10.0.1.3", "username": "u_s03", "event_type": "login_attempt", "result": "failure"}
+  ]
+}

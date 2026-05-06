@@ -1,0 +1,14 @@
+{
+  "scenario_id": "successes_ignored",
+  "name": "Successes Ignored",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": null,
+  "expected_detection": null,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.9", "username": "u_s09", "event_type": "login_attempt", "result": "success"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.9", "username": "u_s09", "event_type": "login_attempt", "result": "success"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.9", "username": "u_s09", "event_type": "login_attempt", "result": "success"},
+    {"timestamp_offset": 3, "source_ip": "10.0.1.9", "username": "u_s09", "event_type": "login_attempt", "result": "success"},
+    {"timestamp_offset": 4, "source_ip": "10.0.1.9", "username": "u_s09", "event_type": "login_attempt", "result": "success"}
+  ]
+}

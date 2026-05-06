@@ -39,7 +39,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 
 def _load_trigger(name: str) -> List[Dict[str, Any]]:
-    return json.loads((REPO_ROOT / name).read_text(encoding="utf-8"))
+    path = REPO_ROOT / name
+    if not path.exists():
+        path = REPO_ROOT / "samples" / name
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _full_pipeline(raw_events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -167,6 +170,41 @@ def test_okta_event_ipAddress_normalizes_to_source_ip():
     assert len(normalized) == 1
     assert normalized[0]["source_ip"] == "192.168.1.55"
     assert normalized[0]["username"] == "alice@example.com"
+
+
+def test_vpn_event_normalizes_location():
+    events = [{
+        "timestamp": "2025-12-21T06:00:00Z",
+        "event_type": "vpn_login",
+        "result": "success",
+        "source_ip": "198.51.100.7",
+        "username": "alice",
+        "location": "RU",
+        "source": "vpn",
+    }]
+    normalized, rejected = normalize_events(events)
+    assert rejected == 0
+    assert len(normalized) == 1
+    assert normalized[0]["event_type"] == "vpn_login"
+    assert normalized[0]["location"] == "RU"
+
+
+def test_edr_process_event_normalizes_command_line_without_result():
+    events = [{
+        "timestamp": "2025-12-21T06:05:00Z",
+        "event_type": "process_start",
+        "process_name": "powershell.exe",
+        "command_line": "powershell -enc AAAA",
+        "username": "alice",
+        "source_ip": "host1",
+        "source": "edr",
+    }]
+    normalized, rejected = normalize_events(events)
+    assert rejected == 0
+    assert len(normalized) == 1
+    assert normalized[0]["result"] == "success"
+    assert normalized[0]["process_name"] == "powershell.exe"
+    assert normalized[0]["command_line"] == "powershell -enc AAAA"
 
 
 # ---------------------------------------------------------------------------

@@ -22,7 +22,7 @@ def list_runs():
     """List all available run IDs."""
     if not RUNS_DIR.exists():
         return []
-    return sorted([d.name for d in RUNS_DIR.iterdir() if d.is_dir()])
+    return sorted([d.name for d in RUNS_DIR.iterdir() if d.is_dir() and (d / "meta.json").exists()])
 
 @router.get("/{run_id}/meta", response_model=RunsMetaResponse)
 def get_meta(run_id: str):
@@ -31,7 +31,15 @@ def get_meta(run_id: str):
     if not path.exists():
         raise HTTPException(status_code=404, detail="Metadata not found for this run")
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("meta.json must contain a JSON object")
+        return {
+            "created_at": str(raw.get("created_at") or ""),
+            "event_count": int(raw.get("event_count") or raw.get("result_count") or raw.get("incident_count") or 0),
+            "envelope_source": raw.get("envelope_source"),
+            "schema_version": raw.get("schema_version"),
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading metadata: {str(e)}")
 

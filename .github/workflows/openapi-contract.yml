@@ -45,13 +45,13 @@ jobs:
 
       - name: Fetch and canonicalize OpenAPI
         run: |
-          test -f openapi/openapi.snapshot.json
-          curl -fsS http://127.0.0.1:8000/openapi.json | python scripts/canonicalize_json.py > openapi/openapi.current.json
-          python scripts/canonicalize_json.py < openapi/openapi.snapshot.json > openapi/openapi.expected.json
+          test -f docs/api/openapi.snapshot.json
+          curl -fsS http://127.0.0.1:8000/openapi.json | python scripts/canonicalize_json.py > docs/api/openapi.current.json
+          python scripts/canonicalize_json.py < docs/api/openapi.snapshot.json > docs/api/openapi.expected.json
 
       - name: Compare OpenAPI snapshot
         run: |
-          diff -u openapi/openapi.expected.json openapi/openapi.current.json
+          diff -u docs/api/openapi.expected.json docs/api/openapi.current.json
 
       - name: Stop API
         if: always()
@@ -67,5 +67,5 @@ jobs:
           name: openapi-contract-artifacts
           path: |
             uvicorn.log
-            openapi/openapi.expected.json
-            openapi/openapi.current.json
+            docs/api/openapi.expected.json
+            docs/api/openapi.current.json

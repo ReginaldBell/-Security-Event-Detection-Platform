@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import deque
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -9,6 +10,9 @@ from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from app.schemas.event_models_new import NormalizedEventNew as NormalizedEvent
 from app.schemas.incident_new import IncidentNew as Incident
+from app.services.investigation_playbooks import get_investigation_playbook
+from app.services.playbook_registry import get_playbook_by_technique
+from app.services.risk_engine import compute_risk, risk_level
 
 
 MITRE_T1110 = "T1110"
@@ -21,6 +25,59 @@ WINDOW_SECONDS = 60
 BRUTE_FORCE_FAILURE_THRESHOLD = 5
 CRED_ABUSE_DISTINCT_USER_THRESHOLD = 5
 CRED_ABUSE_FAILURE_THRESHOLD = 8
+COMPROMISE_CORRELATION_SECONDS = 300
+
+
+class _RiskSubject:
+    def __init__(self, user: Optional[str], src: Optional[str], dest: Optional[str]):
+        self.user = user
+        self.src = src
+        self.dest = dest
+
+
+def _locked_detection_from_incident(incident: dict) -> dict:
+    technique_id = incident.get("mitre_technique", "GENERIC")
+    evidence = incident.get("evidence") or {}
+    counts = evidence.get("counts") or {}
+    timeline = evidence.get("timeline") or []
+    command_lines = [
+        str(item.get("command_line") or "").lower()
+        for item in timeline
+        if isinstance(item, dict)
+    ]
+    return {
+        "technique_id": technique_id,
+        "detection_id": incident.get("type", "incident_detection"),
+        "evidence": {
+            "failures": counts.get("failures", 0),
+            "success": counts.get("success_after_failure", 0) > 0,
+            "unique_ips": incident.get("source_count", 0),
+            "unique_dests": counts.get("unique_dests", 0),
+            "encoded": any("-enc" in cmd or "-encodedcommand" in cmd for cmd in command_lines),
+        },
+        "confidence": incident.get("confidence", 0.0),
+    }
+
+
+def _finalize_incident(incident: dict) -> dict:
+    detection = _locked_detection_from_incident(incident)
+    subject = incident.get("subject") or {}
+    risk_subject = _RiskSubject(
+        user=subject.get("username"),
+        src=subject.get("source_ip"),
+        dest=subject.get("host") or incident.get("dest"),
+    )
+    score = compute_risk(detection, risk_subject)
+    playbook = get_playbook_by_technique(detection["technique_id"])
+    incident.setdefault("playbook_id", playbook["id"])
+    incident.setdefault("risk_score", score)
+    incident.setdefault("risk_level", risk_level(score))
+    incident.setdefault("detection_id", detection["detection_id"])
+    obj = Incident(**incident)
+    data = obj.model_dump(exclude_unset=True)
+    if not data.get("investigation"):
+        data["investigation"] = get_investigation_playbook(obj)
+    return Incident(**data).model_dump(exclude_unset=True)
 
 def _phase4_summary(incident: dict) -> str:
     technique = incident.get("mitre_technique", "T1110")
@@ -53,10 +110,13 @@ def _phase4_summary_cred_abuse(incident: dict) -> str:
     ws = evidence.get("window_start", "unknown")
     we = evidence.get("window_end", "unknown")
 
+    is_ip = bool(re.match(r"^\d{1,3}(\.\d{1,3}){3}$", str(source_ip)))
+    source_label = f"source IP {source_ip}" if is_ip else f"workstation {source_ip} (NTLM path — IP not logged)"
+
     return (
         f"Potential Credential Abuse detected (MITRE T1110.003 - Password Spraying): "
         f"{failures} failed login attempts across {distinct_users} distinct accounts "
-        f"from source IP {source_ip} during {ws}–{we}. "
+        f"from {source_label} during {ws}–{we}. "
         "This pattern is indicative of compromised credentials or unauthorized access attempts."
     )
 
@@ -116,6 +176,33 @@ def _is_auth_event(ev: Dict[str, Any]) -> bool:
     )
 
 
+def _is_success(ev: Dict[str, Any]) -> bool:
+    r = ev.get("result")
+    return isinstance(r, str) and r.lower() == "success"
+
+
+def _is_process_event(ev: Dict[str, Any]) -> bool:
+    event_type = ev.get("event_type")
+    if not isinstance(event_type, str):
+        return False
+    return event_type.strip().lower() in {"process_start", "process_create", "process_creation"}
+
+
+def _is_suspicious_process(ev: Dict[str, Any]) -> bool:
+    process_name = str(ev.get("process_name") or "").lower()
+    command_line = str(ev.get("command_line") or "").lower()
+    suspicious_names = ("powershell.exe", "cmd.exe", "rundll32.exe", "wmic.exe", "mshta.exe")
+    suspicious_args = (" -enc", "-encodedcommand", "downloadstring", "invoke-webrequest", "iex ")
+    return any(name in process_name for name in suspicious_names) or any(arg in command_line for arg in suspicious_args)
+
+
+def _raise_severity(severity: str) -> str:
+    order = ["low", "medium", "high", "critical"]
+    if severity not in order:
+        return "high"
+    return order[min(order.index(severity) + 1, len(order) - 1)]
+
+
 def _severity_and_confidence(count: int) -> Tuple[str, float]:
     if count >= 20:
         return ("high", 0.95)
@@ -140,8 +227,136 @@ def _event_timeline(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "result": ev.get("result"),
                 "reason": ev.get("reason"),
                 "username": ev.get("username"),
+                "process_name": ev.get("process_name"),
+                "command_line": ev.get("command_line"),
+                "location": ev.get("location"),
             }
         )
+    return out
+
+
+def _apply_cross_source_correlation(
+    incidents: List[Dict[str, Any]],
+    validated: List[Tuple[datetime, Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    if not incidents:
+        return incidents
+
+    out = list(incidents)
+    emitted_ids = {inc.get("incident_id") for inc in out}
+    correlation_delta = timedelta(seconds=COMPROMISE_CORRELATION_SECONDS)
+
+    for incident in out:
+        if incident.get("type") not in {"brute_force", "credential_abuse"}:
+            continue
+        subject = incident.get("subject") or {}
+        user = subject.get("username")
+        ip = subject.get("source_ip")
+        last_seen = _parse_ts(str(incident.get("last_seen") or ""))
+        if last_seen is None:
+            continue
+
+        success_events = []
+        for dt, ev in validated:
+            if dt < last_seen or dt > last_seen + correlation_delta:
+                continue
+            if not (_is_auth_event(ev) and _is_success(ev)):
+                continue
+            same_user = user == "multiple_accounts" or ev.get("username") == user
+            same_source = ev.get("source_ip") == ip
+            if same_user and same_source:
+                success_events.append((dt, ev))
+
+        if success_events:
+            incident["severity"] = _raise_severity(str(incident.get("severity", "low")))
+            incident["confidence"] = min(float(incident.get("confidence", 0.7)) + 0.05, 0.99)
+            flags = set(incident.get("correlation_flags") or [])
+            flags.add("bruteforce_then_success")
+            incident["correlation_flags"] = sorted(flags)
+            incident["chain_confidence"] = max(float(incident.get("chain_confidence") or 0), 0.78)
+            incident.setdefault("evidence", {}).setdefault("counts", {})["success_after_failure"] = len(success_events)
+            actions = incident.setdefault("recommended_actions", [])
+            action = "Escalate if the success event is not expected; review session activity and revoke active sessions if unauthorized."
+            if action not in actions:
+                actions.append(action)
+
+        for success_dt, success_ev in success_events:
+            success_user = success_ev.get("username")
+            if not isinstance(success_user, str) or not success_user:
+                continue
+            suspicious_events = [
+                ev
+                for dt, ev in validated
+                if success_dt <= dt <= success_dt + correlation_delta
+                and ev.get("username") == success_user
+                and _is_process_event(ev)
+                and _is_suspicious_process(ev)
+            ]
+            if not suspicious_events:
+                continue
+
+            first_process = suspicious_events[0]
+            start_ts = success_dt.isoformat().replace("+00:00", "Z")
+            end_ts = str(first_process.get("timestamp") or start_ts)
+            host = first_process.get("source_ip") or success_ev.get("source_ip") or "unknown"
+            seed = f"possible_compromise|{success_user}|{host}|{start_ts}"
+            incident_id = _stable_incident_id(seed)
+            if incident_id in emitted_ids:
+                continue
+            emitted_ids.add(incident_id)
+
+            evidence_events = [success_ev] + suspicious_events
+            compromise = {
+                "incident_id": incident_id,
+                "type": "possible_compromise",
+                "mitre_technique": "T1059",
+                "mitre": {
+                    "tactic": "Execution",
+                    "technique": "T1059",
+                    "technique_name": "Command and Scripting Interpreter",
+                },
+                "severity": "high",
+                "confidence": 0.88,
+                "first_seen": start_ts,
+                "last_seen": end_ts,
+                "affected_entities": sorted({str(host), success_user}),
+                "evidence_count": len(evidence_events),
+                "source_count": len({e.get("source") for e in evidence_events if e.get("source")}),
+                "summary": (
+                    f"Possible account compromise chain: successful login for '{success_user}' "
+                    "followed by suspicious process execution within 5 minutes."
+                ),
+                "recommended_actions": [
+                    "Validate whether the login and process execution were expected.",
+                    "Collect endpoint process tree and network connections for the host.",
+                    "Reset credentials and revoke sessions if activity is unauthorized.",
+                    "Escalate to Tier 2 if encoded commands, lateral movement, or privileged access are present.",
+                ],
+                "correlation_flags": ["bruteforce_then_success", "process_after_auth"],
+                "chain_confidence": 0.85,
+                "explanation": {
+                    "threshold": 1,
+                    "observed": len(suspicious_events),
+                    "window": f"{COMPROMISE_CORRELATION_SECONDS}s",
+                    "trigger_field": "username",
+                },
+                "subject": {"source_ip": str(host), "username": success_user},
+                "evidence": {
+                    "window_start": start_ts,
+                    "window_end": end_ts,
+                    "counts": {
+                        "login_successes": 1,
+                        "suspicious_processes": len(suspicious_events),
+                    },
+                    "timeline": _event_timeline(evidence_events),
+                    "events": evidence_events,
+                },
+            }
+            try:
+                out.append(_finalize_incident(compromise))
+            except Exception:
+                continue
+
     return out
 
 
@@ -180,6 +395,7 @@ def detect_incidents(normalized_events: Any) -> List[Dict[str, Any]]:
     window_delta = timedelta(seconds=WINDOW_SECONDS)
     brute_force_windows: Dict[Tuple[str, str], Deque[Tuple[datetime, Dict[str, Any]]]] = {}
     active_bruteforce: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    credential_abuse_windows: Dict[str, Deque[Tuple[datetime, Dict[str, Any]]]] = {}
 
     for dt, ev in validated:
         if not _is_failure(ev) or not _is_auth_event(ev):
@@ -256,8 +472,7 @@ def detect_incidents(normalized_events: Any) -> List[Dict[str, Any]]:
 
                 incident = _phase4_apply_explainability(incident)
                 try:
-                    obj = Incident(**incident)
-                    dumped = obj.model_dump(exclude_unset=True)
+                    dumped = _finalize_incident(incident)
                     out_incidents.append(dumped)
                     emitted.add(incident_id)
                     incident_index_by_id[incident_id] = len(out_incidents) - 1
@@ -289,31 +504,26 @@ def detect_incidents(normalized_events: Any) -> List[Dict[str, Any]]:
                     incident = _phase4_apply_explainability(incident)
                     out_incidents[incident_idx] = incident
 
-        win.append((dt, ev))
-        cutoff = dt - window_delta
-        while win and win[0][0] < cutoff:
-            win.popleft()
+        cred_ip = ev.get("source_ip")
+        cred_user = ev.get("username")
+        if not isinstance(cred_ip, str) or not cred_ip:
+            continue
+        if not isinstance(cred_user, str) or not cred_user:
+            continue
 
-        # Build aggregates in the current window
-        failures_by_ip: Dict[str, List[Dict[str, Any]]] = {}
-
-        for _, e in win:
-            ip = e.get("source_ip")
-            user = e.get("username")
-            if not isinstance(ip, str) or not ip:
-                continue
-            if not isinstance(user, str) or not user:
-                continue
-
-            failures_by_ip.setdefault(ip, []).append(e)
+        cred_window = credential_abuse_windows.setdefault(cred_ip, deque())
+        cred_window.append((dt, ev))
+        while cred_window and (dt - cred_window[0][0]) > window_delta:
+            cred_window.popleft()
 
         # Credential Abuse: same IP, multiple distinct usernames
-        for ip, events in failures_by_ip.items():
+        for ip, ip_window in credential_abuse_windows.items():
+            events = [item[1] for item in ip_window]
             distinct_users = {e.get("username") for e in events if e.get("username")}
             count = len(events)
 
             if len(distinct_users) >= CRED_ABUSE_DISTINCT_USER_THRESHOLD and count >= CRED_ABUSE_FAILURE_THRESHOLD:
-                start_ts, end_ts = _window_bounds(win)
+                start_ts, end_ts = _window_bounds(ip_window)
                 entities = sorted([ip] + sorted(distinct_users))
                 seed = f"credential_abuse|{'|'.join(entities)}|{start_ts}"
                 incident_id = _stable_incident_id(seed)
@@ -364,19 +574,22 @@ def detect_incidents(normalized_events: Any) -> List[Dict[str, Any]]:
 
                 incident = _phase4_apply_explainability_cred_abuse(incident)
                 try:
-                    obj = Incident(**incident)
-                    out_incidents.append(obj.model_dump(exclude_unset=True))
+                    out_incidents.append(_finalize_incident(incident))
                 except Exception:
                     continue
+
+    out_incidents = _apply_cross_source_correlation(out_incidents, validated)
 
     # Final deterministic ordering
     out_incidents.sort(key=lambda x: x.get("incident_id", ""))
     return out_incidents
 
 
-def detect_run(run_id: str, runs_root: Path) -> Dict[str, int]:
+def detect_run(run_id: str, runs_root: Path, source_file: str = "normalized.json") -> Dict[str, int]:
     run_dir = runs_root / run_id
-    in_path = run_dir / "normalized.json"
+    in_path = run_dir / source_file
+    if not in_path.exists():
+        in_path = run_dir / "normalized.json"
     out_path = run_dir / "incidents.json"
 
     if not in_path.exists():

@@ -1,0 +1,45 @@
+{
+  "scenario_id": "normal_login_activity",
+  "name": "Normal Login Activity",
+  "base_time": "2026-01-01T00:00:00Z",
+  "description": "Simulates legitimate user authentication spread across different source IPs — should NOT trigger any detection",
+  "mitre": null,
+  "expected_detection": null,
+  "events": [
+    {
+      "timestamp_offset": 0,
+      "source_ip": "10.0.1.10",
+      "username": "alice",
+      "event_type": "login_attempt",
+      "result": "success"
+    },
+    {
+      "timestamp_offset": 5,
+      "source_ip": "10.0.1.11",
+      "username": "bob",
+      "event_type": "login_attempt",
+      "result": "success"
+    },
+    {
+      "timestamp_offset": 10,
+      "source_ip": "10.0.1.12",
+      "username": "carol",
+      "event_type": "login_attempt",
+      "result": "success"
+    },
+    {
+      "timestamp_offset": 15,
+      "source_ip": "10.0.1.10",
+      "username": "alice",
+      "event_type": "login_attempt",
+      "result": "failure"
+    },
+    {
+      "timestamp_offset": 20,
+      "source_ip": "10.0.1.10",
+      "username": "alice",
+      "event_type": "login_attempt",
+      "result": "success"
+    }
+  ]
+}

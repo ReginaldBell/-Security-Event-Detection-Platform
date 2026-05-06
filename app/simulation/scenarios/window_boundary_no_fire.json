@@ -1,0 +1,14 @@
+{
+  "scenario_id": "window_boundary_no_fire",
+  "name": "Window Boundary No Fire",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": null,
+  "expected_detection": null,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.5", "username": "u_s05", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 61, "source_ip": "10.0.1.5", "username": "u_s05", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 62, "source_ip": "10.0.1.5", "username": "u_s05", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 63, "source_ip": "10.0.1.5", "username": "u_s05", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 64, "source_ip": "10.0.1.5", "username": "u_s05", "event_type": "login_attempt", "result": "failure"}
+  ]
+}

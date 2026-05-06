@@ -12,7 +12,7 @@ from app.main import app
 
 
 def main() -> int:
-    snapshot_path = Path("openapi") / "openapi.snapshot.json"
+    snapshot_path = Path("docs") / "api" / "openapi.snapshot.json"
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
 
     spec = app.openapi()

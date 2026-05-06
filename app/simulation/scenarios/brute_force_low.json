@@ -1,0 +1,18 @@
+{
+  "scenario_id": "brute_force_low",
+  "name": "Brute Force Low Severity",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": {"technique": "T1110", "tactic": "Credential Access"},
+  "expected_detection": "brute_force",
+  "expected_mitre": "T1110",
+  "expected_subject": {"source_ip": "10.0.1.1", "username": "u_s01"},
+  "expected_severity": "low",
+  "expected_confidence": 0.7,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.1", "username": "u_s01", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.1", "username": "u_s01", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.1", "username": "u_s01", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 3, "source_ip": "10.0.1.1", "username": "u_s01", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 4, "source_ip": "10.0.1.1", "username": "u_s01", "event_type": "login_attempt", "result": "failure"}
+  ]
+}

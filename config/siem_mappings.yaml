@@ -1,0 +1,35 @@
+version: "1.0"
+
+sources:
+  splunk:
+    index: auth_logs
+    fields:
+      source_ip: src_ip
+      username: user
+      result: result
+      timestamp: _time
+      process_name: process_name
+      command_line: command_line
+      location: location
+
+  wazuh:
+    index: wazuh-alerts
+    fields:
+      source_ip: data.srcip
+      username: data.user
+      result: data.status
+      timestamp: timestamp
+      process_name: data.win.eventdata.image
+      command_line: data.win.eventdata.commandLine
+      location: data.geoip.country_name
+
+  sentinel:
+    index: SigninLogs
+    fields:
+      source_ip: IPAddress
+      username: UserPrincipalName
+      result: ResultType
+      timestamp: TimeGenerated
+      process_name: FileName
+      command_line: ProcessCommandLine
+      location: Location

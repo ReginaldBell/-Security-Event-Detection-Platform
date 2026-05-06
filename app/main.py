@@ -1,21 +1,35 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes.ai_pipeline import router as ai_pipeline_router
 from app.routes.entity_risk import router as entity_risk_router
+from app.routes.entities import router as entities_router
 from app.routes.ingest import router as ingest_router
 from app.routes.incidents import router as incidents_router
+from app.routes.playbooks import router as playbooks_router
 from app.routes.retrieval import router as retrieval_router
 from app.routes.metrics import router as metrics_router
+from app.routes.validation import router as validation_router
+from app.routes.dce import router as dce_router
 from pathlib import Path
 import logging
+import time
 
+from app.db.database import init_db as _init_db
 from app.services.mapping_loader import load_mappings as _load_mappings
 from app.services.entity_risk import rehydrate as _rehydrate_entity_risk
 from app.services.incident_store import load_store as _load_incident_store
 from app.services.incident_store import list_incidents as _list_incidents
 from app.services.metrics import rehydrate as _rehydrate_metrics
+from app.services import correlation as _correlation_service
 
 logger = logging.getLogger(__name__)
+
+# Initialize Postgres DB (CREATE IF NOT EXISTS for all tables).
+try:
+    _init_db()
+except Exception as _e:
+    logger.error(f"DB initialization failed: {_e}")
 
 # Warm the mapping loader cache at startup — surfaces bad config immediately
 # rather than on the first ingest request.
@@ -25,6 +39,18 @@ except RuntimeError as _e:
     logger.error(f"Field mapping config failed to load at startup: {_e}")
 
 app = FastAPI(title="SecureWatch Engine")
+
+
+@app.middleware("http")
+async def log_request_latency(request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
+    logger.info(
+        f"[API] {request.method} {request.url.path} completed in {elapsed_ms}ms "
+        f"status={response.status_code}"
+    )
+    return response
 
 # Enable CORS for frontend testing
 app.add_middleware(
@@ -37,9 +63,14 @@ app.add_middleware(
 
 app.include_router(ingest_router)
 app.include_router(incidents_router)
+app.include_router(playbooks_router)
 app.include_router(entity_risk_router)
+app.include_router(entities_router)
 app.include_router(retrieval_router)
 app.include_router(metrics_router)
+app.include_router(validation_router)
+app.include_router(ai_pipeline_router)
+app.include_router(dce_router)
 
 # Load persistent incident lifecycle state from runs/incidents.json.
 try:
@@ -58,6 +89,16 @@ try:
     _rehydrate_metrics(Path("runs"))
 except Exception as _e:
     logger.warning(f"Metrics rehydration failed: {_e}")
+
+# Rehydrate correlation chains from persisted incidents
+try:
+    for _incident in _list_incidents():
+        try:
+            _correlation_service.correlate_incident(_incident)
+        except Exception:
+            pass
+except Exception as _e:
+    logger.warning(f"Correlation chain rehydration failed: {_e}")
 
 @app.get("/health")
 def health():

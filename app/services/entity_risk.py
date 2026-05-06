@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import math
 import threading
 from dataclasses import dataclass
@@ -8,10 +9,21 @@ from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from app.schemas.incident_new import IncidentNew
+from app.db.database import get_session
+from app.db.models import EntityRiskRow
+
+logger = logging.getLogger(__name__)
 
 RISK_INCREMENT_BY_TYPE: Dict[str, float] = {
     "brute_force": 10.0,
     "credential_abuse": 25.0,
+    "ai_prompt_injection": 30.0,
+    "ai_privilege_escalation": 35.0,
+    "ai_jailbreak": 30.0,
+    "ai_data_exfiltration": 35.0,
+    "ai_combined_attack": 45.0,
+    "ai_dlp_high": 20.0,
+    "ai_dlp_critical": 40.0,
 }
 DECAY_HALF_LIFE_HOURS = 24.0
 _SECONDS_PER_HOUR = 3600.0
@@ -106,6 +118,12 @@ def _apply_weight_locked(entity_type: str, entity_id: str, weight: float, at: da
 
 def _record_incident_locked(incident: IncidentNew, at: datetime) -> None:
     weight = RISK_INCREMENT_BY_TYPE.get(incident.type, 0.0)
+    ai_data = incident.ai_pipeline_data
+    if ai_data is not None:
+        if ai_data.dlp_max_severity == "critical":
+            weight += RISK_INCREMENT_BY_TYPE["ai_dlp_critical"]
+        elif ai_data.dlp_max_severity == "high":
+            weight += RISK_INCREMENT_BY_TYPE["ai_dlp_high"]
     if weight <= 0:
         return
     entities = _collect_entities(incident)
@@ -115,22 +133,74 @@ def _record_incident_locked(incident: IncidentNew, at: datetime) -> None:
         _apply_weight_locked("username", username, weight, at)
 
 
+def _persist_risk_locked() -> None:
+    """Write current in-memory risk state to DB. Caller must hold _lock."""
+    try:
+        with get_session() as session:
+            for (entity_type, entity_id), state in _risk_by_entity.items():
+                session.merge(EntityRiskRow(
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    score=state.score,
+                    last_updated=state.last_updated.isoformat().replace("+00:00", "Z"),
+                ))
+    except Exception as exc:
+        logger.warning(f"Entity risk persist failed: {exc}")
+
+
 def record_incident(incident: IncidentNew) -> None:
     at = _parse_iso8601(incident.last_seen) or _utcnow()
     with _lock:
         _record_incident_locked(incident, at)
+        _persist_risk_locked()
 
 
 def rehydrate(incidents: Iterable[IncidentNew]) -> None:
+    incident_list = list(incidents)
+    if incident_list:
+        with _lock:
+            _risk_by_entity.clear()
+            ordered = sorted(
+                incident_list,
+                key=lambda inc: _parse_iso8601(inc.last_seen) or _utcnow(),
+            )
+            for incident in ordered:
+                at = _parse_iso8601(incident.last_seen) or _utcnow()
+                _record_incident_locked(incident, at)
+            _persist_risk_locked()
+        return
+
+    # Try loading persisted risk state from DB first.
+    try:
+        with get_session() as session:
+            rows = session.query(EntityRiskRow).all()
+            if rows:
+                with _lock:
+                    _risk_by_entity.clear()
+                    for row in rows:
+                        dt = _parse_iso8601(row.last_updated)
+                        if dt is None:
+                            continue
+                        _risk_by_entity[(row.entity_type, row.entity_id)] = _RiskState(
+                            score=row.score,
+                            last_updated=dt,
+                        )
+                logger.info(f"Entity risk rehydrated from database ({len(rows)} entities)")
+                return
+    except Exception as exc:
+        logger.warning(f"Failed to load entity risk from DB, rebuilding: {exc}")
+
+    # Fall back: rebuild from incident history (same as before).
     with _lock:
         _risk_by_entity.clear()
         ordered = sorted(
-            incidents,
+            incident_list,
             key=lambda inc: _parse_iso8601(inc.last_seen) or _utcnow(),
         )
         for incident in ordered:
             at = _parse_iso8601(incident.last_seen) or _utcnow()
             _record_incident_locked(incident, at)
+        _persist_risk_locked()
 
 
 def build_entity_risk_rows(incidents: List[IncidentNew]) -> List[Dict[str, object]]:

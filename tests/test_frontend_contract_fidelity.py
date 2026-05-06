@@ -71,6 +71,7 @@ def test_frontend_contract_explanation_and_confidence_fields(tmp_path, monkeypat
     assert incident["mitre"]["tactic"] == "Credential Access"
     assert incident["mitre"]["technique"] == "T1110"
     assert incident["mitre"]["technique_name"] == "Brute Force"
+    assert incident["playbook_id"] == "bruteforce_investigation"
     assert isinstance(incident["confidence"], float)
     assert 0.0 <= incident["confidence"] <= 1.0
     assert json.loads(json.dumps(explanation)) == explanation
@@ -87,6 +88,12 @@ def test_frontend_contract_lifecycle_transitions_are_reflected(tmp_path, monkeyp
     )
     assert acknowledged["status"] == "acknowledged"
     assert acknowledged["updated_at"] is not None
+
+    escalated = incidents_route.patch_incident(
+        "inc_frontend_001",
+        IncidentPatchRequest(status="escalated"),
+    )
+    assert escalated["status"] == "escalated"
 
     closed = incidents_route.patch_incident(
         "inc_frontend_001",
@@ -114,3 +121,33 @@ def test_frontend_contract_entity_list_is_renderable(tmp_path, monkeypatch):
     assert isinstance(entities, list)
     assert len(entities) >= 2
     assert all(isinstance(item, str) and item for item in entities)
+
+
+def test_frontend_incident_panel_uses_incident_playbook_endpoint():
+    source = Path("dashboard/src/SecurityWorkflow.jsx").read_text(encoding="utf-8")
+
+    assert "/incidents/${sidePanelInc.id}/playbook" in source
+    assert "Loaded from this incident, not manual playbook selection." in source
+    assert "IncidentPlaybookPanel" in source
+    assert "View Full Playbook" in source
+    assert "buildPlaybookDashboardHref" in source
+    assert "view: 'playbooks'" in source
+    assert "params.get('technique')" in source
+    assert "Run Pivot" in source
+    assert "/incidents/${sidePanelInc.id}/spl" not in source
+    assert "/playbooks/${" not in source
+
+
+def test_frontend_entity_drilldown_contract_is_clickable():
+    source = Path("dashboard/src/SecurityWorkflow.jsx").read_text(encoding="utf-8")
+
+    assert "goToEntityView(entityView, row.entity)" in source
+    assert "goToEntityView('username', sidePanelInc.user)" in source
+    assert "goToEntityView('source_ip', sidePanelInc.sourceIp)" in source
+    assert "/entities/${selectedEntity.entity_type}/${encodeURIComponent(selectedEntity.entity_id)}" in source
+    assert "setDashboardRoute({ view: 'entities', entity_type: entityType, entity_id: value })" in source
+    assert "Entity Drilldown" in source
+    assert "Linked Playbooks" in source
+    assert "Investigation Pivots" in source
+    assert "Related Incidents" in source
+    assert "goToPlaybook(playbook)" in source
