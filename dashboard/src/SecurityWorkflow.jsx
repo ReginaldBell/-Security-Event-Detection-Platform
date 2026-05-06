@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronRight, ExternalLink, Filter, Search, Upload, X } from 'lucide-react';
-import securewatchLogo from './images/Securewatch.png';
+import securewatchLogo from './images/SecureWatch.png';
 import DetectionQualityTable from './components/DetectionQualityTable';
 import MitreCoverageView from './components/MitreCoverageView';
 import AIPipelineView from './components/AIPipelineView';

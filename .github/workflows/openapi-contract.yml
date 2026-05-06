@@ -10,6 +10,8 @@ on:
 jobs:
   openapi-contract:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+psycopg://securewatch:securewatch@localhost:5432/securewatch
 
     steps:
       - name: Checkout
