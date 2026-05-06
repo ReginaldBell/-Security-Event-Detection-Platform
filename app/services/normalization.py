@@ -48,10 +48,23 @@ def _coerce_timestamp(value: Any) -> Optional[str]:
 
 def _first_str(d: Dict[str, Any], keys: List[str]) -> Optional[str]:
     for k in keys:
-        v = d.get(k)
+        v = _get_path(d, k)
         if isinstance(v, str) and v.strip():
             return v.strip()
     return None
+
+
+def _get_path(d: Dict[str, Any], key: str) -> Any:
+    if key in d:
+        return d.get(key)
+    if "." not in key:
+        return None
+    cur: Any = d
+    for part in key.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
 
 
 def _map_raw_to_normalized_dict(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -62,7 +75,7 @@ def _map_raw_to_normalized_dict(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]
     # Timestamp: iterate profile aliases and coerce the first hit.
     ts_raw = None
     for alias in get_field_aliases(source, "timestamp"):
-        val = raw.get(alias)
+        val = _get_path(raw, alias)
         if val is not None:
             ts_raw = val
             break
@@ -76,12 +89,25 @@ def _map_raw_to_normalized_dict(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]
     result     = _first_str(raw, get_field_aliases(source, "result"))
     reason     = _first_str(raw, get_field_aliases(source, "reason"))
     user_agent = _first_str(raw, get_field_aliases(source, "user_agent"))
+    process_name = _first_str(raw, get_field_aliases(source, "process_name"))
+    command_line = _first_str(raw, get_field_aliases(source, "command_line"))
+    location = _first_str(raw, get_field_aliases(source, "location"))
+    event_id = _first_str(raw, get_field_aliases(source, "event_id"))
+    scenario_id = _first_str(raw, get_field_aliases(source, "scenario_id"))
+    validation_run_id = _first_str(raw, get_field_aliases(source, "validation_run_id"))
 
     # Reject known non-auth telemetry before any further processing.
     if event_type is not None and event_type.lower() in get_reject_types(source):
         return _TELEMETRY_SENTINEL  # type: ignore[return-value]
 
-    # Required minimum for auth telemetry normalization:
+    if event_type is not None and result is None and event_type.lower() in {
+        "process_start",
+        "process_create",
+        "process_creation",
+    }:
+        result = "success"
+
+    # Required minimum for telemetry normalization:
     # timestamp + event_type + result must exist to support downstream detections.
     if event_type is None or result is None:
         return None
@@ -97,7 +123,13 @@ def _map_raw_to_normalized_dict(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]
         "result": result,
         "reason": reason,
         "user_agent": user_agent,
-        "source": source,
+        "process_name": process_name,
+        "command_line": command_line,
+        "location": location,
+        "source": source or "auth_service",
+        "event_id": event_id,
+        "scenario_id": scenario_id,
+        "validation_run_id": validation_run_id,
         "raw_source": json.dumps(raw, separators=(",", ":")),
     }
 

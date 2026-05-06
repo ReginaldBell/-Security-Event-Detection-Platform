@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
+
+from app.schemas.ai_pipeline import AIPipelineMeta
 
 
 class IncidentEvidenceNew(BaseModel):
@@ -15,6 +17,7 @@ class IncidentEvidenceNew(BaseModel):
 class IncidentSubjectNew(BaseModel):
     source_ip: str
     username: str
+    host: Optional[str] = None
 
 
 class IncidentExplanationNew(BaseModel):
@@ -30,12 +33,31 @@ class IncidentMitreMappingNew(BaseModel):
     technique_name: str
 
 
+class InvestigationPivotQuery(BaseModel):
+    name: str
+    description: str
+    query: str
+
+
+class IncidentInvestigationNew(BaseModel):
+    questions: List[str]
+    pivot_queries: List[InvestigationPivotQuery]
+    false_positives: List[str]
+    escalation_conditions: List[str]
+
+
 def _default_mitre_mapping(incident_type: str, mitre_technique: str) -> IncidentMitreMappingNew:
     if incident_type == "credential_abuse":
         return IncidentMitreMappingNew(
             tactic="Credential Access",
             technique="T1110.003",
             technique_name="Password Spraying",
+        )
+    if incident_type == "possible_compromise":
+        return IncidentMitreMappingNew(
+            tactic="Execution",
+            technique="T1059",
+            technique_name="Command and Scripting Interpreter",
         )
     return IncidentMitreMappingNew(
         tactic="Credential Access",
@@ -49,6 +71,11 @@ class IncidentNew(BaseModel):
     type: str  # "brute_force" | "credential_abuse"
     mitre_technique: str = "T1110"
     mitre: Optional[IncidentMitreMappingNew] = None
+    playbook_id: Optional[str] = None
+    risk_score: Optional[int] = None
+    risk_level: Optional[str] = None
+    dest: Optional[str] = None
+    detection_id: Optional[str] = None
     severity: str  # low | medium | high | critical
     confidence: float  # 0.0-1.0 scale
     first_seen: str  # ISO 8601 UTC - earliest event in detection window
@@ -61,7 +88,13 @@ class IncidentNew(BaseModel):
     explanation: IncidentExplanationNew
     subject: IncidentSubjectNew
     evidence: IncidentEvidenceNew
-    status: Literal["open", "acknowledged", "closed"] = "open"
+    investigation: Optional[IncidentInvestigationNew] = None
+    correlation_flags: List[str] = Field(default_factory=list)
+    chain_confidence: Optional[float] = None
+    status: Literal["open", "acknowledged", "escalated", "closed"] = "open"
+    assignee: Optional[str] = None
+    source: Literal["auth", "ai_pipeline"] = "auth"
+    ai_pipeline_data: Optional[AIPipelineMeta] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     resolution_reason: Optional[str] = None

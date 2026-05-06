@@ -1,0 +1,12 @@
+{
+  "scenario_id": "telemetry_dropped",
+  "name": "Telemetry Dropped",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": null,
+  "expected_detection": null,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.10", "username": "system", "event_type": "heartbeat", "result": "success"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.10", "username": "system", "event_type": "heartbeat", "result": "success"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.10", "username": "system", "event_type": "heartbeat", "result": "success"}
+  ]
+}

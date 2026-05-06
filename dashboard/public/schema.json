@@ -20,7 +20,13 @@
     "event_type": "Defaults to login_attempt",
     "reason": "Failure reason (e.g. bad_password)",
     "user_agent": "User agent string",
-    "source": "Source system name (defaults to auth_service)"
+    "process_name": "EDR process executable name, e.g. powershell.exe",
+    "command_line": "EDR process command line",
+    "location": "Geo/location hint for VPN or cloud auth events",
+    "source": "Source system name (defaults to auth_service)",
+    "event_id": "Stable source or scenario event identifier",
+    "scenario_id": "Validation scenario identifier",
+    "validation_run_id": "Deterministic validation run identifier"
   },
   "defaults": {
     "event_type": "login_attempt",

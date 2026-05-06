@@ -55,11 +55,36 @@ _default:
     - user_agent
     - ua
     - agent
+  process_name:
+    - process_name
+    - process
+    - image
+    - Image
+    - file.name
+  command_line:
+    - command_line
+    - command
+    - cmdline
+    - process.command_line
+    - CommandLine
+  location:
+    - location
+    - geo
+    - country
+    - client.geographicalContext.country
   source:
     - source
     - provider
     - log_source
     - system
+  event_id:
+    - event_id
+    - id
+    - uuid
+  scenario_id:
+    - scenario_id
+  validation_run_id:
+    - validation_run_id
 
 okta:
   _reject_event_types:
@@ -96,10 +121,28 @@ okta:
     - client.userAgent.rawUserAgent
     - user_agent
     - ua
+  process_name:
+    - process_name
+    - process
+  command_line:
+    - command_line
+    - command
+  location:
+    - client.geographicalContext.country
+    - client.geographicalContext.city
+    - location
+    - country
   source:
     - displayMessage
     - source
     - provider
+  event_id:
+    - event_id
+    - uuid
+  scenario_id:
+    - scenario_id
+  validation_run_id:
+    - validation_run_id
 
 windows_security:
   _reject_event_types:
@@ -116,6 +159,7 @@ windows_security:
     - source_ip
     - ip
     - src_ip
+    - WorkstationName   # NTLM fallback: IpAddress is null on NtLmSsp auth path; workstation is only attribution
   username:
     - SubjectUserName
     - TargetUserName
@@ -136,7 +180,151 @@ windows_security:
   user_agent:
     - user_agent
     - ua
+  process_name:
+    - NewProcessName
+    - ProcessName
+    - Image
+    - process_name
+  command_line:
+    - CommandLine
+    - ProcessCommandLine
+    - command_line
+  location:
+    - location
+    - country
   source:
     - Channel
     - source
     - provider
+  event_id:
+    - event_id
+    - EventRecordID
+  scenario_id:
+    - scenario_id
+  validation_run_id:
+    - validation_run_id
+
+vpn:
+  _reject_event_types:
+    - heartbeat
+    - health_check
+  timestamp:
+    - timestamp
+    - time
+    - "@timestamp"
+  source_ip:
+    - source_ip
+    - src_ip
+    - client_ip
+    - remote_ip
+  username:
+    - username
+    - user
+    - account
+  event_type:
+    - event_type
+    - action
+    - type
+  result:
+    - result
+    - outcome
+    - status
+  reason:
+    - reason
+    - message
+  user_agent:
+    - user_agent
+    - ua
+  process_name:
+    - process_name
+  command_line:
+    - command_line
+  location:
+    - location
+    - country
+    - geo.country
+  source:
+    - source
+    - provider
+    - log_source
+  event_id:
+    - event_id
+    - id
+  scenario_id:
+    - scenario_id
+  validation_run_id:
+    - validation_run_id
+
+edr:
+  _reject_event_types:
+    - heartbeat
+    - health_check
+  timestamp:
+    - timestamp
+    - time
+    - "@timestamp"
+  source_ip:
+    - host
+    - hostname
+    - device_name
+    - source_ip
+  username:
+    - username
+    - user
+    - account
+  event_type:
+    - event_type
+    - action
+    - type
+  result:
+    - result
+    - outcome
+    - status
+  reason:
+    - reason
+    - message
+  user_agent:
+    - user_agent
+    - ua
+  process_name:
+    - process_name
+    - process.name
+    - Image
+    - file.name
+  command_line:
+    - command_line
+    - process.command_line
+    - CommandLine
+    - cmdline
+  location:
+    - location
+  source:
+    - source
+    - provider
+    - log_source
+  event_id:
+    - event_id
+    - id
+  scenario_id:
+    - scenario_id
+  validation_run_id:
+    - validation_run_id
+
+# Locked generic normalization aliases used by app.models.normalized_event.
+user:
+  - TargetUserName
+  - user
+  - username
+  - UserId
+
+src:
+  - IpAddress
+  - source_ip
+  - ClientIP
+  - src
+
+dest:
+  - Computer
+  - host
+  - hostname
+  - device_name

@@ -6,12 +6,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.routes import incidents as incidents_route
+from app.routes import entities as entities_route
 from app.routes import entity_risk as entity_risk_route
 from app.routes import ingest as ingest_route
 from app.routes import metrics as metrics_route
 from app.routes import retrieval as retrieval_route
 from app.schemas.api_contract import (
     IncidentListResponse,
+    EntityDetailResponse,
     EntityRiskResponse,
     IngestResponse,
     MetricsResponse,
@@ -157,3 +159,36 @@ def test_entity_risk_response_contract_is_stable(tmp_path, monkeypatch):
     assert validated.decay_half_life_hours > 0
     assert "brute_force" in validated.increment_weights
     assert len(validated.entities) >= 1
+
+
+def test_entity_detail_response_contract_is_stable(tmp_path, monkeypatch):
+    monkeypatch.setattr(incident_store, "_STORE_PATH", tmp_path / "runs" / "incidents.json")
+    monkeypatch.setattr(incident_store, "_incidents_by_id", {})
+    monkeypatch.setattr(incident_store, "_loaded", False)
+    incident_store.load_store()
+    incident_store.upsert_incident(_sample_incident())
+
+    response = entities_route.get_entity_detail("username", "alice")
+    validated = EntityDetailResponse.model_validate(response)
+
+    assert validated.entity_type == "username"
+    assert validated.entity_id == "alice"
+    assert validated.total_incidents >= 1
+    assert validated.incidents[0].incident_id == "inc_contract_001"
+    assert "T1110" in validated.mitre_techniques
+    assert validated.playbooks[0].technique_id == "T1110"
+    assert len(validated.investigation_pivots) >= 1
+
+
+def test_username_entity_shortcut_route_matches_contract(tmp_path, monkeypatch):
+    monkeypatch.setattr(incident_store, "_STORE_PATH", tmp_path / "runs" / "incidents.json")
+    monkeypatch.setattr(incident_store, "_incidents_by_id", {})
+    monkeypatch.setattr(incident_store, "_loaded", False)
+    incident_store.load_store()
+    incident_store.upsert_incident(_sample_incident())
+
+    response = entities_route.get_username_entity_detail("alice")
+    validated = EntityDetailResponse.model_validate(response)
+
+    assert validated.entity_type == "username"
+    assert validated.entity_id == "alice"

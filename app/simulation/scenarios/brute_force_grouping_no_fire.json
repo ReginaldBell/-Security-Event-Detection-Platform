@@ -1,0 +1,14 @@
+{
+  "scenario_id": "brute_force_grouping_no_fire",
+  "name": "Brute Force Grouping No Fire",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": null,
+  "expected_detection": null,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.12", "username": "u_s12_0", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.12", "username": "u_s12_1", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.12", "username": "u_s12_2", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 3, "source_ip": "10.0.1.12", "username": "u_s12_3", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 4, "source_ip": "10.0.1.12", "username": "u_s12_4", "event_type": "login_attempt", "result": "failure"}
+  ]
+}

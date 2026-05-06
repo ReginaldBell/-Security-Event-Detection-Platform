@@ -1,0 +1,33 @@
+{
+  "scenario_id": "brute_force_high",
+  "name": "Brute Force High Severity",
+  "base_time": "2026-01-01T00:00:00Z",
+  "mitre": {"technique": "T1110", "tactic": "Credential Access"},
+  "expected_detection": "brute_force",
+  "expected_mitre": "T1110",
+  "expected_subject": {"source_ip": "10.0.1.4", "username": "u_s04"},
+  "expected_severity": "high",
+  "expected_confidence": 0.95,
+  "events": [
+    {"timestamp_offset": 0, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 1, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 2, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 3, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 4, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 5, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 6, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 7, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 8, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 9, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 10, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 11, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 12, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 13, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 14, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 15, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 16, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 17, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 18, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"},
+    {"timestamp_offset": 19, "source_ip": "10.0.1.4", "username": "u_s04", "event_type": "login_attempt", "result": "failure"}
+  ]
+}

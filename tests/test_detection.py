@@ -7,6 +7,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _load_events(name: str):
     path = REPO_ROOT / name
+    if not path.exists():
+        path = REPO_ROOT / "samples" / name
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -285,3 +287,39 @@ def test_mixed_noise_only_emits_expected_incident():
     assert inc["subject"]["source_ip"] == "203.0.113.10"
     assert inc["subject"]["username"] == "alice"
     assert inc["evidence_count"] == 5
+
+
+def test_success_after_bruteforce_raises_severity_and_compromise_chain():
+    events = [
+        _event(f"2025-12-21T06:00:{str(i*10).zfill(2)}Z", "203.0.113.10", "alice")
+        for i in range(5)
+    ]
+    events.extend([
+        _event("2025-12-21T06:01:20Z", "203.0.113.10", "alice", result="success"),
+        {
+            "timestamp": "2025-12-21T06:02:00Z",
+            "source_ip": "host1",
+            "username": "alice",
+            "event_type": "process_start",
+            "result": "success",
+            "process_name": "powershell.exe",
+            "command_line": "powershell -enc AAAA",
+            "source": "edr",
+        },
+    ])
+
+    incidents = detect_incidents(events)
+    brute = [inc for inc in incidents if inc.get("type") == "brute_force"]
+    compromise = [inc for inc in incidents if inc.get("type") == "possible_compromise"]
+
+    assert brute
+    assert brute[0]["severity"] == "medium"
+    assert brute[0]["evidence"]["counts"]["success_after_failure"] == 1
+    assert "bruteforce_then_success" in brute[0]["correlation_flags"]
+    assert brute[0]["chain_confidence"] == 0.78
+    assert brute[0]["investigation"]["questions"]
+    assert compromise
+    assert compromise[0]["mitre"]["technique"] == "T1059"
+    assert compromise[0]["correlation_flags"] == ["bruteforce_then_success", "process_after_auth"]
+    assert compromise[0]["chain_confidence"] == 0.85
+    assert compromise[0]["evidence"]["counts"]["suspicious_processes"] == 1

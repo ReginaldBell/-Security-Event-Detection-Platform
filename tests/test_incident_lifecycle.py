@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.schemas.incident_new import IncidentNew
+from app.ai_pipeline.secure_context import build_incident_context
 from app.services import incident_store
 
 
@@ -74,6 +75,7 @@ def _incident(
 
 def _reset_store(tmp_path: Path) -> None:
     incident_store._STORE_PATH = tmp_path / "runs" / "incidents.json"
+    incident_store._AUDIT_PATH = tmp_path / "runs" / "incident_audit.json"
     incident_store._incidents_by_id = {}
     incident_store._loaded = False
     incident_store.load_store()
@@ -124,6 +126,7 @@ def test_closed_incident_reopens_correctly(tmp_path, monkeypatch):
     base = datetime(2026, 1, 1, tzinfo=timezone.utc)
     incident_store.upsert_incident(_incident("inc_test_003", base))
     incident_store.transition_incident("inc_test_003", "acknowledged")
+    incident_store.transition_incident("inc_test_003", "escalated")
     incident_store.transition_incident("inc_test_003", "closed", resolution_reason="contained")
 
     reopened = incident_store.upsert_incident(
@@ -147,6 +150,9 @@ def test_invalid_transition_rejected(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="Invalid transition"):
         incident_store.transition_incident("inc_test_004", "closed")
 
+    with pytest.raises(ValueError, match="Invalid transition"):
+        incident_store.transition_incident("inc_test_004", "escalated")
+
 
 def test_lifecycle_fields_updated_properly(tmp_path, monkeypatch):
     monkeypatch.setattr(incident_store.metrics_service, "increment_counter", lambda *_a, **_k: None)
@@ -162,6 +168,104 @@ def test_lifecycle_fields_updated_properly(tmp_path, monkeypatch):
     assert created.updated_at is not None
     assert acknowledged.updated_at >= created.updated_at
     assert acknowledged.status == "acknowledged"
+
+
+def test_escalate_and_assign_incident(tmp_path, monkeypatch):
+    monkeypatch.setattr(incident_store.metrics_service, "increment_counter", lambda *_a, **_k: None)
+    _reset_store(tmp_path)
+
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    incident_store.upsert_incident(_incident("inc_test_007", base))
+    incident_store.transition_incident("inc_test_007", "acknowledged")
+
+    escalated = incident_store.transition_incident(
+        "inc_test_007",
+        "escalated",
+        assignee="tier2",
+        user="analyst_1",
+    )
+    assert escalated.status == "escalated"
+    assert escalated.assignee == "tier2"
+
+    closed = incident_store.transition_incident(
+        "inc_test_007",
+        "closed",
+        resolution_reason="escalated_contained",
+    )
+    assert closed.status == "closed"
+    assert closed.assignee == "tier2"
+    assert closed.resolution_reason == "escalated_contained"
+    audit = incident_store.list_audit_events("inc_test_007")
+    assert any(event["action"] == "escalated" for event in audit)
+    assert any(event["action"] == "assigned" and event["assignee"] == "tier2" for event in audit)
+
+
+def test_secure_context_excludes_raw_events():
+    incident = _incident("inc_test_secure_context", datetime(2026, 1, 1, tzinfo=timezone.utc))
+
+    context = build_incident_context(incident)
+
+    assert context["incident_id"] == "inc_test_secure_context"
+    assert context["redaction_policy"]["raw_events"] == "excluded"
+    assert context["redaction_policy"]["raw_identifiers"] == "hashed"
+    assert "field_policy" in context
+    assert "evidence.events" in context["field_policy"]["removed"]
+    assert "subject.username" in context["field_policy"]["removed"]
+    assert context["chain_correlation"]["stage"] == 1
+    assert context["chain_correlation"]["next_likely_step"]["technique"] == "T1078"
+    assert "events" not in context
+    assert "subject" not in context
+    assert "alice" not in str(context)
+    assert "203.0.113.10" not in str(context)
+    assert context["timeline_summary"]["evidence_count"] == incident.evidence_count
+
+
+def test_incident_response_includes_sla_fields(tmp_path, monkeypatch):
+    monkeypatch.setattr(incident_store.metrics_service, "increment_counter", lambda *_a, **_k: None)
+    _reset_store(tmp_path)
+
+    created = incident_store.upsert_incident(
+        _incident("inc_test_sla", datetime(2026, 1, 1, tzinfo=timezone.utc))
+    )
+
+    response = incident_store.incident_to_response(created)
+
+    assert response["time_since_alert_seconds"] >= 0
+    assert response["time_in_state_seconds"] >= 0
+    assert response["sla_deadline_minutes"] == 120
+    assert response["sla_breached"] in {True, False}
+    assert response["effective_priority"] in {"medium", "high"}
+    assert response["valid_next_statuses"] == ["acknowledged"]
+
+
+def test_sla_breach_auto_flags_and_increases_priority():
+    incident = _incident("inc_test_sla_breach", datetime(2020, 1, 1, tzinfo=timezone.utc))
+    incident.created_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    incident.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+    response = incident_store.incident_to_response(incident)
+
+    assert response["sla_breached"] is True
+    assert response["sla_action_required"] is True
+    assert response["effective_priority"] == "high"
+
+
+def test_closed_to_open_requires_explicit_reopen(tmp_path, monkeypatch):
+    monkeypatch.setattr(incident_store.metrics_service, "increment_counter", lambda *_a, **_k: None)
+    _reset_store(tmp_path)
+
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    incident_store.upsert_incident(_incident("inc_test_reopen", base))
+    incident_store.transition_incident("inc_test_reopen", "acknowledged")
+    incident_store.transition_incident("inc_test_reopen", "escalated")
+    incident_store.transition_incident("inc_test_reopen", "closed", resolution_reason="contained")
+
+    with pytest.raises(ValueError, match="Reopen requires"):
+        incident_store.transition_incident("inc_test_reopen", "open")
+
+    reopened = incident_store.transition_incident("inc_test_reopen", "open", reopen=True)
+    assert reopened.status == "open"
+    assert reopened.resolution_reason is None
 
 
 def test_persistence_survives_reload(tmp_path, monkeypatch):

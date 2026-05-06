@@ -1,0 +1,270 @@
+[
+  {
+    "id": "bruteforce_investigation",
+    "technique_id": "T1110",
+    "name": "Brute Force Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "bruteforce_sequence",
+      "variants": ["password_spray", "distributed_spray", "cross_source_correlation"]
+    },
+    "detection_logic": {
+      "single_source": "(\n| tstats summariesonly=true count as attempts\n  from datamodel=Authentication.Authentication\n  where earliest=-15m latest=now Authentication.action IN (\"failure\",\"success\")\n  by _time span=5m Authentication.src Authentication.user Authentication.action\n)\n| append [\n  search index=wineventlog earliest=-15m latest=now (EventCode=4625 OR EventCode=4624)\n  | eval Authentication.src=coalesce(IpAddress,Source_Network_Address)\n  | eval Authentication.user=TargetUserName\n  | eval Authentication.action=if(EventCode=4625,\"failure\",\"success\")\n  | eval attempts=1\n]\n| eval attempts=coalesce(attempts,1)\n| eval src=coalesce(Authentication.src)\n| eval user=coalesce(Authentication.user)\n| stats sum(eval(Authentication.action=\"failure\")*attempts) as fails\n        sum(eval(Authentication.action=\"success\")*attempts) as success\n        dc(user) as unique_users\n        by src _time\n| eventstats perc95(fails) as p95_fails by src\n| streamstats window=20 sum(fails) as rolling_fails by src\n| eventstats avg(fails) as baseline by src\n| where fails > p95_fails AND fails > 10 AND rolling_fails > 30 AND fails > baseline*3\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory src OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=(fails*2)+(unique_users*5)+if(success>0,20,0)+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval confidence=case(risk_score>80,\"high\",risk_score>40,\"medium\",1=1,\"low\")\n| eval escalate=if(risk_score>80 OR (success>0 AND unique_users>5),\"true\",\"false\")",
+      "distributed_spray": "(index=wineventlog OR index=o365 OR index=azuread) earliest=-15m latest=now\n(EventCode=4625 OR OperationName=\"UserLoginFailed\")\n| eval src=coalesce(src, IpAddress, Source_Network_Address, ClientIP)\n| lookup ip_reputation src OUTPUT asn\n| eval asn=coalesce(asn,\"unknown\")\n| eval user=coalesce(user, TargetUserName, UserId)\n| bin _time span=5m\n| stats count as fails dc(src) as unique_src values(asn) as asns by user _time\n| eventstats avg(unique_src) as baseline_src by user\n| eval baseline_src=if(baseline_src<2,2,baseline_src)\n| where unique_src > baseline_src*3 AND fails > 10 AND NOT match(mvjoin(asns,\",\"),\"trusted_corp_asn\")\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory user OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=(fails*2)+(unique_src*4)+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval confidence=case(risk_score>80,\"high\",risk_score>40,\"medium\",1=1,\"low\")\n| eval escalate=if(risk_score>80,\"true\",\"false\")",
+      "cross_source_correlation": "(index=wineventlog OR index=sysmon OR index=network) earliest=-30m latest=now\n| eval src=coalesce(src, IpAddress)\n| eval user=coalesce(user, TargetUserName, User)\n| eval action=case(EventCode=4625,\"failure\",EventCode=4624,\"success\",EventCode=1,\"process\",1=1,\"network\")\n| sort user src _time\n| streamstats last(action) as prev_action by user src\n| where prev_action=\"failure\" AND action=\"success\"\n| stats values(action) as actions values(process_name) as processes values(dest_ip) as dest_ips min(_time) as first_seen max(_time) as last_seen by user src\n| where \"success\" IN actions AND mvcount(processes)>0 AND (last_seen-first_seen)<600"
+    },
+    "correlation": "Temporal sequence: authentication failure followed by success, with optional execution or network activity.",
+    "false_positive_logic": "| lookup known_admin_activity src OUTPUT allowed\n| where isnull(allowed)",
+    "triage": [
+      "Was there success after failures",
+      "Was a privileged account used",
+      "Did execution follow authentication"
+    ],
+    "false_positives": [
+      "Known administrator activity",
+      "User forgot password",
+      "Misconfigured application retrying old credentials",
+      "Corporate VPN or proxy aggregation"
+    ],
+    "escalation": {
+      "condition": "success_after_failure or privileged_user or correlated_process_activity",
+      "sla": "30m"
+    },
+    "escalation_criteria": [
+      "success after failure",
+      "privileged user",
+      "correlated process activity"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": ["T1110", "T1078", "T1059", "T1021"],
+    "chain_steps": ["Brute Force", "Valid Account", "Execution", "Lateral Movement"],
+    "chain_context": "Successful brute force yields valid credentials, enabling execution under legitimate account context, progressing to lateral movement."
+  },
+  {
+    "id": "password_spray_investigation",
+    "technique_id": "T1110.003",
+    "name": "Password Spray Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "password_spray",
+      "variants": ["distributed_spray", "bruteforce_sequence"]
+    },
+    "detection_logic": {
+      "distributed_spray": "(index=wineventlog OR index=o365 OR index=azuread) earliest=-15m latest=now\n(EventCode=4625 OR OperationName=\"UserLoginFailed\")\n| eval src=coalesce(src, IpAddress, Source_Network_Address, ClientIP)\n| lookup ip_reputation src OUTPUT asn\n| eval asn=coalesce(asn,\"unknown\")\n| eval user=coalesce(user, TargetUserName, UserId)\n| bin _time span=5m\n| stats count as fails dc(src) as unique_src values(asn) as asns by user _time\n| eventstats avg(unique_src) as baseline_src by user\n| eval baseline_src=if(baseline_src<2,2,baseline_src)\n| where unique_src > baseline_src*3 AND fails > 10 AND NOT match(mvjoin(asns,\",\"),\"trusted_corp_asn\")\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory user OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=(fails*2)+(unique_src*4)+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval confidence=case(risk_score>80,\"high\",risk_score>40,\"medium\",1=1,\"low\")\n| eval escalate=if(risk_score>80,\"true\",\"false\")"
+    },
+    "correlation": "Distributed authentication failures across many source IPs or ASNs against one user.",
+    "false_positive_logic": "| lookup known_admin_activity src OUTPUT allowed\n| where isnull(allowed)",
+    "triage": [
+      "Was there success after failures",
+      "Was a privileged account used",
+      "Did execution follow authentication"
+    ],
+    "false_positives": [
+      "Known administrator activity",
+      "Shared application retrying old credentials",
+      "Corporate proxy or VPN aggregation",
+      "Identity provider outage"
+    ],
+    "escalation": {
+      "condition": "risk_score>80",
+      "sla": "30m"
+    },
+    "escalation_criteria": [
+      "success after failure",
+      "privileged user",
+      "correlated process activity"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": ["T1110.003", "T1078", "T1059", "T1021"],
+    "chain_steps": ["Brute Force", "Valid Account", "Execution", "Lateral Movement"],
+    "chain_context": "Password spraying can yield valid credentials across one or more accounts, enabling execution under legitimate account context, progressing to lateral movement."
+  },
+  {
+    "id": "command_execution_investigation",
+    "technique_id": "T1059",
+    "name": "Command Execution Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "encoded_command",
+      "variants": ["suspicious_interpreter", "execution_network_correlation"]
+    },
+    "detection_logic": {
+      "execution_network_correlation": "index=sysmon earliest=-15m latest=now EventCode=1\n| eval process=CommandLine\n| eval parent=ParentImage\n| eval user=User\n| eval dest=Computer\n| eval cmd_len=len(process)\n| eval entropy=len(replace(process,\"[A-Za-z0-9]\",\"\"))\n| where like(process,\"%powershell%\")\n   OR like(process,\"%rundll32%\")\n   OR like(process,\"%mshta%\")\n| where like(process,\"%-enc%\")\n   OR like(process,\"%FromBase64String%\")\n   OR like(process,\"%IEX%\")\n   OR cmd_len > 200\n   OR entropy > 50\n| lookup admin_tools process OUTPUT process as allowed\n| where isnull(allowed)\n| lookup lolbin_parents parent OUTPUT risk_level\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory dest OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| stats values(process) as processes values(parent) as parents by user dest\n| join dest [\n    search index=network earliest=-15m latest=now\n    | stats values(dest_ip) as connections by dest\n]\n| eval risk_score=20+if(risk_level=\"high\",30,0)+if(is_privileged=\"true\",30,0)+if(entropy>80,20,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval confidence=case(risk_score>80,\"high\",risk_score>40,\"medium\",1=1,\"low\")\n| eval escalate=if(risk_score>80,\"true\",\"false\")"
+    },
+    "correlation": "Suspicious interpreter execution with obfuscation signals and optional network connections.",
+    "false_positive_logic": "| lookup known_admin_activity user OUTPUT allowed\n| where isnull(allowed)",
+    "triage": [
+      "Was command obfuscated",
+      "Did it create network traffic",
+      "Was parent suspicious"
+    ],
+    "false_positives": [
+      "Known administrator activity",
+      "Administrator scripting",
+      "Endpoint management tasks"
+    ],
+    "escalation": {
+      "condition": "risk_score>80",
+      "sla": "30m"
+    },
+    "escalation_criteria": [
+      "obfuscated command",
+      "network traffic after execution",
+      "suspicious parent process"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": ["T1059", "T1105", "T1021"],
+    "chain_steps": ["Execution", "C2", "Lateral Movement"],
+    "chain_context": "Suspicious command execution can stage tooling or establish command-and-control, creating a path toward lateral movement."
+  },
+  {
+    "id": "remote_services_investigation",
+    "technique_id": "T1021",
+    "name": "Remote Services Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "remote_services_fanout",
+      "variants": ["sequence_volume_hybrid"]
+    },
+    "detection_logic": {
+      "sequence_volume_hybrid": "(index=wineventlog OR index=sysmon OR index=network) earliest=-20m latest=now\n| eval src=coalesce(src, IpAddress)\n| eval user=coalesce(user, TargetUserName, User)\n| eval dest=coalesce(dest, Computer)\n| eval action=case(EventCode=4624,\"success\",EventCode=1,\"process\",1=1,\"network\")\n| sort user src _time\n| streamstats last(action) as prev_action by user src\n| stats values(action) as actions values(dest) as dests values(dest_ip) as dest_ips values(process_name) as processes dc(dest) as unique_dests by user src\n| where (\"success\" IN actions AND mvcount(processes)>0 AND mvcount(dest_ips)>0)\n   OR unique_dests > 5\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory src OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=(unique_dests*10)+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval confidence=case(risk_score>80,\"high\",risk_score>40,\"medium\",1=1,\"low\")\n| eval escalate=if(risk_score>80 OR unique_dests>5,\"true\",\"false\")"
+    },
+    "correlation": "Successful authentication followed by process/network activity or high-volume multi-destination access.",
+    "false_positive_logic": "| lookup known_admin_activity src OUTPUT allowed\n| where isnull(allowed)",
+    "triage": [
+      "Number of systems accessed",
+      "Execution after authentication",
+      "Privileged account"
+    ],
+    "false_positives": [
+      "Known administrator activity",
+      "Administrator maintenance",
+      "Endpoint management tooling"
+    ],
+    "escalation": {
+      "condition": "risk_score>80 or unique_dests>5",
+      "sla": "30m"
+    },
+    "escalation_criteria": [
+      "multi-host access volume",
+      "execution after authentication",
+      "privileged account"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": ["T1078", "T1021", "T1059"],
+    "chain_steps": ["Valid Account", "Lateral Movement", "Execution"],
+    "chain_context": "Valid account access enables remote service use, which can lead to execution on additional hosts."
+  },
+  {
+    "id": "credential_dumping_investigation",
+    "technique_id": "T1003",
+    "name": "Credential Dumping Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "credential_dumping_signal",
+      "variants": ["lsass_access", "credential_tool_execution"]
+    },
+    "detection_logic": {
+      "lsass_access": "index=sysmon earliest=-15m latest=now EventCode=10\n| where TargetImage=\"*lsass.exe\"\n| where GrantedAccess IN (\"0x1010\",\"0x1410\")\n| eval user=User\n| eval dest=Computer\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory dest OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=60+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval escalate=\"true\"",
+      "credential_tool_execution": "index=sysmon earliest=-15m latest=now EventCode=1\n| eval process=CommandLine\n| where like(process,\"%procdump%\")\n   OR like(process,\"%comsvcs%\")\n   OR like(process,\"%mimikatz%\")\n   OR like(process,\"%MiniDumpWriteDump%\")\n| eval user=User\n| eval dest=Computer\n| lookup identity_lookup user OUTPUT is_privileged\n| lookup asset_inventory dest OUTPUT criticality\n| eval criticality=coalesce(criticality,1)\n| eval risk_score=70+if(is_privileged=\"true\",30,0)\n| eval risk_score=min(risk_score*criticality,100)\n| eval escalate=\"true\""
+    },
+    "correlation": "Credential dumping via LSASS access or credential dumping tool execution.",
+    "false_positive_logic": "| lookup known_admin_activity user OUTPUT allowed\n| where isnull(allowed)",
+    "triage": [
+      "LSASS accessed or dump tool used",
+      "Privileged account context",
+      "Follow-on lateral movement"
+    ],
+    "false_positives": [
+      "Known administrator activity",
+      "Security testing",
+      "Approved forensic collection"
+    ],
+    "escalation": {
+      "condition": "always",
+      "sla": "15m"
+    },
+    "escalation_criteria": [
+      "LSASS access",
+      "credential dumping tool execution",
+      "privileged account context"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": ["T1003", "T1068", "T1021"],
+    "chain_steps": ["Credential Dumping", "Privilege Escalation", "Lateral Movement"],
+    "chain_context": "Credential dumping can expose reusable secrets, enabling privilege escalation and lateral movement."
+  },
+  {
+    "id": "generic_investigation",
+    "technique_id": "GENERIC",
+    "name": "Generic Investigation",
+    "deployment_context": {
+      "cim": "required",
+      "datamodel_acceleration": "optional",
+      "geoip": "optional",
+      "edr": "recommended"
+    },
+    "detections": {
+      "primary": "",
+      "variants": []
+    },
+    "detection_logic": {},
+    "correlation": "",
+    "false_positive_logic": "",
+    "triage": [
+      "Review event context",
+      "Check related activity"
+    ],
+    "false_positives": [
+      "Unknown"
+    ],
+    "escalation": {
+      "condition": "manual",
+      "sla": "30m"
+    },
+    "escalation_criteria": [
+      "manual"
+    ],
+    "risk": {
+      "fields": ["risk_score", "risk_level"]
+    },
+    "chain": [],
+    "chain_steps": [],
+    "chain_context": ""
+  }
+]

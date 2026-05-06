@@ -1,15 +1,3 @@
-"""
-app/services/metrics.py
-
-Thread-safe in-memory counters with JSON persistence.
-Tracks structured, source-aware metrics across all ingests.
-
-Public API:
-    record_ingest(norm_stats, normalized_events, incidents)
-    increment_counter(name, amount=1)
-    get_metrics() -> dict
-    rehydrate(runs_root: Path)
-"""
 from __future__ import annotations
 
 import json
@@ -19,14 +7,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
+from app.db.database import get_session
+from app.db.models import MetricRow
+
 logger = logging.getLogger(__name__)
 
-_METRICS_FILE = Path("metrics.json")
-_lock = threading.Lock()
+# Legacy path — read once on first startup for migration, then ignored.
+_LEGACY_METRICS_FILE = Path("runs/metrics.json")
 
-# ---------------------------------------------------------------------------
-# Counter state
-# ---------------------------------------------------------------------------
+_lock = threading.Lock()
 
 _DEFAULT_COUNTERS: Dict[str, Any] = {
     "events_ingested_total": 0,
@@ -44,35 +33,31 @@ _DEFAULT_COUNTERS: Dict[str, Any] = {
 
 _counters: Dict[str, Any] = json.loads(json.dumps(_DEFAULT_COUNTERS))
 
+_METRICS_KEY = "counters"
+
 
 def _ensure_counter_shape() -> None:
-    """Ensure all expected metric keys exist. Caller must hold _lock."""
     for key, value in _DEFAULT_COUNTERS.items():
         if key not in _counters:
             _counters[key] = json.loads(json.dumps(value))
 
 
 def _persist() -> None:
-    """Write current counters to metrics.json. Caller must hold _lock."""
     try:
-        _METRICS_FILE.write_text(json.dumps(_counters, indent=2), encoding="utf-8")
+        with get_session() as session:
+            session.merge(MetricRow(
+                key=_METRICS_KEY,
+                value=json.dumps(_counters),
+            ))
     except Exception as exc:
         logger.warning(f"Failed to persist metrics: {exc}")
 
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 
 def record_ingest(
     norm_stats: Dict[str, int],
     normalized_events: List[Dict[str, Any]],
     incidents: List[Dict[str, Any]],
 ) -> None:
-    """Update counters after a successful ingest.
-
-    norm_stats keys: raw, normalized, dropped, telemetry_rejected
-    """
     with _lock:
         _ensure_counter_shape()
         _counters["events_ingested_total"] += norm_stats.get("raw", 0)
@@ -106,33 +91,44 @@ def increment_counter(name: str, amount: int = 1) -> None:
 
 
 def get_metrics() -> Dict[str, Any]:
-    """Return a snapshot of current counters."""
     with _lock:
         _ensure_counter_shape()
-        return json.loads(json.dumps(_counters))  # deep copy via JSON round-trip
+        return json.loads(json.dumps(_counters))
 
 
 def rehydrate(runs_root: Path) -> None:
-    """Rebuild counters from existing run artifacts on disk.
-
-    If metrics.json exists, load it directly. Otherwise scan all runs.
-    """
     global _counters
 
-    # Fast path: load persisted metrics
-    if _METRICS_FILE.exists():
+    # 1. Try loading from DB.
+    try:
+        with get_session() as session:
+            row = session.query(MetricRow).filter(MetricRow.key == _METRICS_KEY).first()
+            if row is not None:
+                data = json.loads(row.value)
+                if isinstance(data, dict) and "events_ingested_total" in data:
+                    with _lock:
+                        _counters.update(data)
+                        _ensure_counter_shape()
+                    logger.info("Metrics rehydrated from database")
+                    return
+    except Exception as exc:
+        logger.warning(f"Failed to load metrics from DB: {exc}")
+
+    # 2. One-time migration: load from legacy metrics.json if present.
+    if _LEGACY_METRICS_FILE.exists():
         try:
-            data = json.loads(_METRICS_FILE.read_text(encoding="utf-8"))
+            data = json.loads(_LEGACY_METRICS_FILE.read_text(encoding="utf-8"))
             if isinstance(data, dict) and "events_ingested_total" in data:
                 with _lock:
                     _counters.update(data)
                     _ensure_counter_shape()
-                logger.info("Metrics rehydrated from metrics.json")
+                    _persist()
+                logger.info("Metrics migrated from JSON to database")
                 return
         except Exception as exc:
-            logger.warning(f"Failed to read metrics.json, scanning runs: {exc}")
+            logger.warning(f"Failed to read legacy metrics.json: {exc}")
 
-    # Slow path: scan run artifacts
+    # 3. Fall back: rebuild from run artifacts on disk.
     if not runs_root.exists():
         return
 
@@ -151,7 +147,6 @@ def rehydrate(runs_root: Path) -> None:
         norm_path = run_dir / "normalized.json"
         inc_path = run_dir / "incidents.json"
 
-        # Raw count from meta
         if meta_path.exists():
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -160,7 +155,6 @@ def rehydrate(runs_root: Path) -> None:
             except Exception:
                 continue
 
-        # Normalized events — count and source breakdown
         if norm_path.exists():
             try:
                 events = json.loads(norm_path.read_text(encoding="utf-8"))
@@ -172,7 +166,6 @@ def rehydrate(runs_root: Path) -> None:
             except Exception:
                 pass
 
-        # Incidents — type breakdown
         if inc_path.exists():
             try:
                 incidents = json.loads(inc_path.read_text(encoding="utf-8"))
@@ -188,7 +181,6 @@ def rehydrate(runs_root: Path) -> None:
         _counters.update(json.loads(json.dumps(_DEFAULT_COUNTERS)))
         _counters["events_ingested_total"] = total_raw
         _counters["normalized_success_total"] = total_norm
-        # Cannot distinguish telemetry vs missing-required for historical runs
         _counters["missing_required_total"] = max(total_raw - total_norm, 0)
         _counters["telemetry_rejected_total"] = 0
         _counters["events_by_source"] = dict(by_source)
