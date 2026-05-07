@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440" role="img" aria-label="D. Infrastructure and Deployment">
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#667085"/>
+    </marker>
+  </defs>
+  <rect width="2560" height="1440" fill="#f8fafc"/>
+  <rect x="1" y="1" width="2558" height="1438" fill="none" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="80" y="96" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="50" font-weight="800" fill="#101828" text-anchor="start"><tspan x="80" dy="0">D. Infrastructure and Deployment</tspan></text>
+  <text x="84" y="140" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="400" fill="#475467" text-anchor="start"><tspan x="84" dy="0">MVP deployment path with clear future scaling boundaries.</tspan></text>
+  <rect x="1530" y="76" width="28" height="28" rx="6" fill="#dbeafe" stroke="#175cd3" stroke-width="2"/><text x="1572" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="1572" dy="0">External systems</tspan></text>
+<rect x="1775" y="76" width="28" height="28" rx="6" fill="#eee9ff" stroke="#6941c6" stroke-width="2"/><text x="1817" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="1817" dy="0">Core processing</tspan></text>
+<rect x="2020" y="76" width="28" height="28" rx="6" fill="#ffe4e6" stroke="#b91230" stroke-width="2"/><text x="2062" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="2062" dy="0">Security analytics</tspan></text>
+<rect x="2265" y="76" width="28" height="28" rx="6" fill="#dcfce7" stroke="#027a48" stroke-width="2"/><text x="2307" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="2307" dy="0">Analyst layer</tspan></text>
+  <rect x="130" y="220" width="2300" height="170" rx="20" fill="#dbeafe" stroke="#175cd3" stroke-width="3"/>
+<text x="160" y="266" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="160" dy="0">Lab and Telemetry Environment</tspan></text>
+<text x="160" y="302" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="160" dy="0">Security lab sources and enterprise telemetry producers</tspan></text>
+<rect x="230" y="300" width="330" height="64" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="395" y="326.2" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="395" dy="0">Windows VM</tspan><tspan x="395" dy="27">Sysmon</tspan></text>
+<rect x="660" y="300" width="330" height="64" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="825" y="339" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="825" dy="0">Wazuh Agent</tspan></text>
+<rect x="1090" y="300" width="330" height="64" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="1255" y="339" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1255" dy="0">EDR Sensor</tspan></text>
+<rect x="1520" y="300" width="330" height="64" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="1685" y="339" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1685" dy="0">API Clients</tspan></text>
+<rect x="1950" y="300" width="330" height="64" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="2115" y="339" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2115" dy="0">Synthetic AI Tests</tspan></text>
+<rect x="130" y="465" width="1080" height="610" rx="20" fill="#eee9ff" stroke="#6941c6" stroke-width="3"/>
+<text x="160" y="511" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="160" dy="0">Docker Compose MVP Boundary</tspan></text>
+<text x="160" y="547" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="160" dy="0">Early-stage deployment optimized for demos, validation, and local SOC workflow testing</tspan></text>
+<rect x="210" y="560" width="400" height="80" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="410" y="593.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="410" dy="0">securewatch-api</tspan><tspan x="410" dy="29.700000000000003">FastAPI + REST endpoints</tspan></text>
+<rect x="710" y="560" width="400" height="80" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="910" y="593.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="910" dy="0">securewatch-worker</tspan><tspan x="910" dy="29.700000000000003">detections + AI validation</tspan></text>
+<rect x="210" y="760" width="400" height="80" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="410" y="793.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="410" dy="0">postgres</tspan><tspan x="410" dy="29.700000000000003">incidents + users + tenants</tspan></text>
+<rect x="710" y="760" width="400" height="80" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="910" y="793.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="910" dy="0">redis</tspan><tspan x="910" dy="29.700000000000003">cache + queue + windows</tspan></text>
+<rect x="460" y="940" width="400" height="80" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="660" y="973.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="660" dy="0">dashboard</tspan><tspan x="660" dy="29.700000000000003">React build served by API</tspan></text>
+<rect x="1350" y="465" width="1080" height="610" rx="20" fill="#ffe4e6" stroke="#b91230" stroke-width="3"/>
+<text x="1380" y="511" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="1380" dy="0">Production Future Boundary</tspan></text>
+<text x="1380" y="547" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="1380" dy="0">Scalable deployment target for commercial SOC/SIEM evolution</tspan></text>
+<rect x="1430" y="560" width="400" height="80" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1630" y="593.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1630" dy="0">Kubernetes Cluster</tspan><tspan x="1630" dy="29.700000000000003">horizontal services</tspan></text>
+<rect x="1930" y="560" width="400" height="80" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="2130" y="593.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2130" dy="0">Managed Event Bus</tspan><tspan x="2130" dy="29.700000000000003">Kafka partitions</tspan></text>
+<rect x="1430" y="760" width="400" height="80" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1630" y="793.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1630" dy="0">Worker Autoscaling</tspan><tspan x="1630" dy="29.700000000000003">consumer groups</tspan></text>
+<rect x="1930" y="760" width="400" height="80" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="2130" y="793.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2130" dy="0">Tenant Isolation</tspan><tspan x="2130" dy="29.700000000000003">row-level + namespace controls</tspan></text>
+<rect x="1680" y="940" width="400" height="80" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1880" y="973.62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1880" dy="0">Multi-region Future</tspan><tspan x="1880" dy="29.700000000000003">DR + regional data plane</tspan></text>
+<rect x="130" y="1155" width="2300" height="170" rx="20" fill="#f1f5f9" stroke="#475569" stroke-width="3"/>
+<text x="160" y="1201" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="160" dy="0">Operational Controls</tspan></text>
+<text x="160" y="1237" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="160" dy="0">Reliability, observability, and security controls required for SOC operations</tspan></text>
+<rect x="220" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="330" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="330" dy="0">Prometheus</tspan></text>
+<rect x="500" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="610" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="610" dy="0">Grafana</tspan></text>
+<rect x="780" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="890" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="890" dy="0">Structured Logs</tspan></text>
+<rect x="1060" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="1170" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1170" dy="0">Audit Logs</tspan></text>
+<rect x="1340" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="1450" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1450" dy="0">Trace IDs</tspan></text>
+<rect x="1620" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="1730" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1730" dy="0">Secrets Mgmt</tspan></text>
+<rect x="1900" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="2010" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2010" dy="0">Rate Limits</tspan></text>
+<rect x="2180" y="1245" width="220" height="52" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="2290" y="1277.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2290" dy="0">Secure Worker Comms</tspan></text>
+<path d="M 1280 390 L 1280 465" stroke="#667085" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<text x="1280" y="411.5" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#475467" text-anchor="middle"><tspan x="1280" dy="0">deployment boundary</tspan></text>
+<path d="M 1210 760 L 1350 760" stroke="#667085" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<text x="1280" y="744" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#475467" text-anchor="middle"><tspan x="1280" dy="0">scale path</tspan></text>
+<rect x="680" y="1350" width="1200" height="60" rx="10" fill="#fff7cc" stroke="#b54708" stroke-width="1.5"/>
+<text x="1280" y="1388" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1280" dy="0">Export each frame independently; no infinite-canvas whitespace.</tspan></text>
+</svg>

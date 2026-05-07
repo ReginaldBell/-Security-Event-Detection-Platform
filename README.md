@@ -10,7 +10,11 @@ SecureWatch is a security detection and AI validation platform built around two 
 
 ## Architecture
 
-> *Figma architecture diagram coming soon.*
+> [View the SecureWatch production architecture diagram](https://www.figma.com/board/mmHJUpmR5JPuETiF91XMKO?utm_source=codex&utm_content=edit_in_figjam&oai_id=&request_id=cb1519ab-820b-4381-97dc-3bbde7126723)
+>
+> Drill-down architecture frames: [Backend Architecture](docs/architecture/securewatch-backend-architecture.svg), [Detection Pipeline](docs/architecture/securewatch-detection-pipeline.svg), and [Infrastructure / Deployment](docs/architecture/securewatch-infrastructure-deployment.svg).
+
+![SecureWatch System Overview](docs/architecture/securewatch-system-overview.svg)
 
 **Threat detection pipeline:** Raw events arrive at `POST /ingest/`, pass through YAML-driven field normalization and Pydantic v2 validation, then enter the detection engine where two sliding-window state machines (brute-force T1110 and password spray T1110.003) run over a 60-second deque. Incidents are deduplicated by deterministic SHA-256 ID, merged on new evidence, persisted to Postgres, and exposed through a REST API consumed by the React dashboard.
 
