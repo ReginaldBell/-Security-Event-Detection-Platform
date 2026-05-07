@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440" role="img" aria-label="A. SecureWatch System Overview">
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#667085"/>
+    </marker>
+  </defs>
+  <rect width="2560" height="1440" fill="#f8fafc"/>
+  <rect x="1" y="1" width="2558" height="1438" fill="none" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="80" y="96" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="50" font-weight="800" fill="#101828" text-anchor="start"><tspan x="80" dy="0">A. SecureWatch System Overview</tspan></text>
+  <text x="84" y="140" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="400" fill="#475467" text-anchor="start"><tspan x="84" dy="0">High-level SOC data flow from telemetry to analyst action.</tspan></text>
+  <rect x="1530" y="76" width="28" height="28" rx="6" fill="#dbeafe" stroke="#175cd3" stroke-width="2"/><text x="1572" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="1572" dy="0">External systems</tspan></text>
+<rect x="1775" y="76" width="28" height="28" rx="6" fill="#eee9ff" stroke="#6941c6" stroke-width="2"/><text x="1817" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="1817" dy="0">Core processing</tspan></text>
+<rect x="2020" y="76" width="28" height="28" rx="6" fill="#ffe4e6" stroke="#b91230" stroke-width="2"/><text x="2062" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="2062" dy="0">Security analytics</tspan></text>
+<rect x="2265" y="76" width="28" height="28" rx="6" fill="#dcfce7" stroke="#027a48" stroke-width="2"/><text x="2307" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#475467" text-anchor="start"><tspan x="2307" dy="0">Analyst layer</tspan></text>
+  <rect x="100" y="210" width="2360" height="170" rx="20" fill="#dbeafe" stroke="#175cd3" stroke-width="3"/>
+<text x="130" y="256" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="130" dy="0">Tier 1: External Systems</tspan></text>
+<text x="130" y="292" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="130" dy="0">Telemetry, lab inputs, and validation sources outside the backend boundary</tspan></text>
+<rect x="150" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="300" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="300" dy="0">Wazuh</tspan></text>
+<rect x="530" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="680" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="680" dy="0">Sysmon</tspan></text>
+<rect x="910" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="1060" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1060" dy="0">Windows Logs</tspan></text>
+<rect x="1290" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="1440" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1440" dy="0">EDR Events</tspan></text>
+<rect x="1670" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="1820" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1820" dy="0">API Sources</tspan></text>
+<rect x="2050" y="300" width="300" height="52" rx="12" fill="#ffffff" stroke="#175cd3" stroke-width="2"/>
+<text x="2200" y="332.3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2200" dy="0">Lab Inputs</tspan></text>
+<rect x="100" y="460" width="2360" height="220" rx="20" fill="#eee9ff" stroke="#6941c6" stroke-width="3"/>
+<text x="130" y="506" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="130" dy="0">Tier 2: Core Processing</tspan></text>
+<text x="130" y="542" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="130" dy="0">Deterministic ingestion, normalization, queueing, and stateful correlation</tspan></text>
+<rect x="150" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="300" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="300" dy="0">Ingestion API</tspan></text>
+<rect x="530" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="680" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="680" dy="0">Schema Validation</tspan></text>
+<rect x="910" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="1060" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1060" dy="0">Normalization</tspan></text>
+<rect x="1290" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="1440" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1440" dy="0">Event Bus</tspan></text>
+<rect x="1670" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="1820" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1820" dy="0">Correlation Engine</tspan></text>
+<rect x="2050" y="555" width="300" height="72" rx="12" fill="#ffffff" stroke="#6941c6" stroke-width="2"/>
+<text x="2200" y="598.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2200" dy="0">Risk Engine</tspan></text>
+<rect x="100" y="760" width="2360" height="220" rx="20" fill="#ffe4e6" stroke="#b91230" stroke-width="3"/>
+<text x="130" y="806" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="130" dy="0">Tier 3: Security Analytics</tspan></text>
+<text x="130" y="842" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="130" dy="0">Detection engineering outputs: MITRE mapping, scoring, evidence, and incidents</tspan></text>
+<rect x="150" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="300" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="300" dy="0">Detection Rules</tspan></text>
+<rect x="530" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="680" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="680" dy="0">MITRE Enrichment</tspan></text>
+<rect x="910" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1060" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1060" dy="0">Confidence Scoring</tspan></text>
+<rect x="1290" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1440" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1440" dy="0">Incident Builder</tspan></text>
+<rect x="1670" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="1820" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1820" dy="0">Deduplication</tspan></text>
+<rect x="2050" y="855" width="300" height="72" rx="12" fill="#ffffff" stroke="#b91230" stroke-width="2"/>
+<text x="2200" y="898.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2200" dy="0">SLA Tagging</tspan></text>
+<rect x="100" y="1060" width="2360" height="210" rx="20" fill="#dcfce7" stroke="#027a48" stroke-width="3"/>
+<text x="130" y="1106" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#101828" text-anchor="start"><tspan x="130" dy="0">Tier 4: Analyst Layer</tspan></text>
+<text x="130" y="1142" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" fill="#475467" text-anchor="start"><tspan x="130" dy="0">SOC workflows exposed through APIs and the React dashboard</tspan></text>
+<rect x="150" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="300" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="300" dy="0">Incident Registry</tspan></text>
+<rect x="530" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="680" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="680" dy="0">Entity Risk</tspan></text>
+<rect x="910" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="1060" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1060" dy="0">Playbooks</tspan></text>
+<rect x="1290" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="1440" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1440" dy="0">Investigation Workflow</tspan></text>
+<rect x="1670" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="1820" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="1820" dy="0">Metrics</tspan></text>
+<rect x="2050" y="1152" width="300" height="72" rx="12" fill="#ffffff" stroke="#027a48" stroke-width="2"/>
+<text x="2200" y="1195.7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" fill="#101828" text-anchor="middle"><tspan x="2200" dy="0">React Dashboard</tspan></text>
+<path d="M 1280 380 L 1280 460" stroke="#667085" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<text x="1280" y="404" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#475467" text-anchor="middle"><tspan x="1280" dy="0">accepted events</tspan></text>
+<path d="M 1280 680 L 1280 760" stroke="#667085" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<text x="1280" y="704" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#475467" text-anchor="middle"><tspan x="1280" dy="0">candidate findings</tspan></text>
+<path d="M 1280 980 L 1280 1060" stroke="#667085" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<text x="1280" y="1004" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#475467" text-anchor="middle"><tspan x="1280" dy="0">actionable incidents</tspan></text>
+<rect x="1540" y="1300" width="820" height="72" rx="10" fill="#fff7cc" stroke="#b54708" stroke-width="1.5"/>
+<text x="1560" y="1344" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="500" fill="#101828" text-anchor="start"><tspan x="1560" dy="0">Frame is 2560 x 1440. Export PNG 2x, SVG, or PDF.</tspan></text>
+</svg>
